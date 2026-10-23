@@ -59,9 +59,26 @@ it('never credits a letter more times than the secret contains it', () => {
   );
 });
 
-describe('matchGuess', () => {
-  it.todo('returns exactly five colors');
-  it.todo('only uses the colors G, Y, B');
-  it.todo('guessing the secret gives all greens');
-  it.todo('never credits a letter more times than the secret contains it');
+const anagramPair = word.chain(secret =>
+  fc.shuffledSubarray([...secret], { minLength: 5, maxLength: 5 }).map(cs => [secret, cs.join('')] as const),
+);
+
+// Pattern: conditional. If the guess is an anagram of the secret, no color is black.
+it('an anagram of the secret has no blacks', () => {
+  fc.assert(
+    fc.property(anagramPair, ([secret, guess]) => {
+      expect(matchGuess(secret, guess)).not.toContain('B');
+    }),
+  );
+});
+
+const shift = (w: string, k: number) => w.replace(/[A-Z]/g, c => ALPHABET[(ALPHABET.indexOf(c) + k) % 26]);
+
+// Pattern: metamorphic. Shifting every letter of both words by the same amount does not change the result.
+it('shifting both words through the alphabet does not change the result', () => {
+  fc.assert(
+    fc.property(word, word, fc.integer({ min: 1, max: 25 }), (secret, guess, k) => {
+      expect(matchGuess(shift(secret, k), shift(guess, k))).toEqual(matchGuess(secret, guess));
+    }),
+  );
 });
